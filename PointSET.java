@@ -1,54 +1,70 @@
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.SET;
 import edu.princeton.cs.algs4.Stack;
 
 public class PointSET {
-    final int a;
+    private final SET<Point2D> set;
     
     // construct an empty set of points
     public PointSET() {
-        a = 0;
+        set = new SET<>();
     }
 
     // is the set empty?    
     public boolean isEmpty() {
-        return false;
+        return set.isEmpty();
     }
     
     // number of points in the set 
     public int size() {
-        return a;
+        if (set.isEmpty()) return 0;
+
+        return set.size();
     }
     
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-
+        set.add(p);
     }
     
     // does the set contain point p? 
     public boolean contains(Point2D p) {
-        return false;
+        if (set.isEmpty()) return false;
+
+        return set.contains(p);
     }
     
     // draw all points to standard draw 
     public void draw() {
+        if (set.isEmpty()) return;
 
+        for (Point2D point2d : set)
+            point2d.draw();
     }
 
     // all points that are inside the rectangle (or on the boundary) 
     public Iterable<Point2D> range(RectHV rect) {
-        Point2D p = new Point2D(0, 0);
-        Stack<Point2D> stack = new Stack<>();
+        if (set.isEmpty()) return null;
 
-        stack.push(p);
+        Stack<Point2D> stack = new Stack<>();
+        for (Point2D p : set) {
+            if (p.x() > rect.xmax()) continue;
+            if (p.x() < rect.xmin()) continue;
+            if (p.y() > rect.ymax()) continue;
+            if (p.y() < rect.ymin()) continue;
+            stack.push(p);
+        }
         return stack;
     }
     
     // a nearest neighbor in the set to point p; null if the set is empty 
     public           Point2D nearest(Point2D p) {
-        return p;
+        if (set.isEmpty()) return null;
+
+        return set.floor(p);
     }
- 
+
     // unit testing of the methods (optional) 
     public static void main(String[] args) {
 
