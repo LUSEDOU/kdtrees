@@ -1,23 +1,58 @@
+import java.security.Key;
+
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
 import edu.princeton.cs.algs4.Stack;
 
 public class KdTree {
-    final int a;
+    private final static boolean VERTICAL = true;
+    private final static boolean HORIZONTAL = false;
+    private final Node tree;
+    private final int size;
     
     // construct an empty set of points
     public KdTree() {
-        a = 0;
+        tree = new Node(
+            null, 
+            null, 
+            null, 
+            VERTICAL, 
+            0
+        );
+
+        size = 0;
+    }
+
+    private static class Node {
+        private final Key key;
+        private final Node left;
+        private final Node right;
+        private final boolean divide;
+        private final int rank;
+
+        public Node(Key key, Node left, Node right, boolean divide, int rank) {
+            this.key = key;
+            this.divide = divide;
+            this.left = left;
+            this.right = right;
+            this.rank = rank;
+        }
+
+        public Key getKey()         {   return key;     }
+        public Node getRight()      {   return right;   }
+        public Node getLeft()       {   return left;    }
+        public boolean getDivide()  {   return divide;  }
+        public int getRank()        {   return rank;    }
     }
 
     // is the set empty?    
     public boolean isEmpty() {
-        return false;
+        return size <= 0;
     }
     
     // number of points in the set 
     public int size() {
-        return a;
+        return size;
     }
     
     // add the point to the set (if it is not already in the set)
