@@ -1,63 +1,62 @@
-import java.security.Key;
-
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
 import edu.princeton.cs.algs4.Stack;
 
 public class KdTree {
-    private final static boolean VERTICAL = true;
-    private final static boolean HORIZONTAL = false;
     private final Node tree;
-    private final int size;
+    private int size;
     
     // construct an empty set of points
     public KdTree() {
         tree = new Node(
             null, 
             null, 
-            null, 
-            VERTICAL, 
-            0
+            null
         );
 
         size = 0;
     }
 
     private static class Node {
-        private final Key key;
-        private final Node left;
-        private final Node right;
-        private final boolean divide;
-        private final int rank;
+        private Point2D p;
+        //private RectHV rect; 
+        private Node lb;
+        private Node rt;
 
-        public Node(Key key, Node left, Node right, boolean divide, int rank) {
-            this.key = key;
-            this.divide = divide;
-            this.left = left;
-            this.right = right;
-            this.rank = rank;
+        public Node(Point2D p, Node lb, Node rt) {
+            setPoint(p);
+            setLb(lb);
+            setRt(rt);
         }
 
-        public Key getKey()         {   return key;     }
-        public Node getRight()      {   return right;   }
-        public Node getLeft()       {   return left;    }
-        public boolean getDivide()  {   return divide;  }
-        public int getRank()        {   return rank;    }
+        public Point2D getPoint()       {   return p;       }
+        public void setPoint(Point2D p) {   this.p = p;     }
+        public Node getRt()             {   return rt;      }
+        public void setRt(Node rt)      {   this.rt = rt;   }
+        public Node getLb()             {   return lb;      }
+        public void setLb(Node lb)      {   this.lb = lb;   }
     }
 
-    // is the set empty?    
-    public boolean isEmpty() {
-        return size <= 0;
-    }
-    
-    // number of points in the set 
-    public int size() {
-        return size;
-    }
+    public boolean isEmpty()    {   return size <= 0;   }   // is the set empty?    
+    public int size()           {   return size;        }   // number of points in the set 
     
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
+        if  (isEmpty()) tree.setPoint(p);
+        else            insert(tree, p, 0);
 
+        size++;
+    }
+
+    private static Node insert(Node h, Point2D p, int controlator) {
+        if (controlator > 1) return h;
+
+        controlator++;
+        int cmp = p.compareTo(h.getPoint());
+        if      (cmp < 0) h.setLb(insert(h.getLb(), p, controlator - 1));
+        else if (cmp > 0) h.setRt(insert(h.getRt(), p, controlator - 1));
+        controlator--;
+        return h;
     }
     
     // does the set contain point p? 
