@@ -1,19 +1,15 @@
+import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
 import edu.princeton.cs.algs4.Stack;
+import edu.princeton.cs.algs4.StdOut;
 
 public class KdTree {
-    private final Node tree;
+    private Node tree;
     private int size;
     
     // construct an empty set of points
     public KdTree() {
-        tree = new Node(
-            null, 
-            null, 
-            null
-        );
-
         size = 0;
     }
 
@@ -23,10 +19,8 @@ public class KdTree {
         private Node lb;
         private Node rt;
 
-        public Node(Point2D p, Node lb, Node rt) {
+        public Node(Point2D p) {
             setPoint(p);
-            setLb(lb);
-            setRt(rt);
         }
 
         public Point2D getPoint()       {   return p;       }
@@ -37,31 +31,45 @@ public class KdTree {
         public void setLb(Node lb)      {   this.lb = lb;   }
     }
 
-    public boolean isEmpty()    {   return size <= 0;   }   // is the set empty?    
-    public int size()           {   return size;        }   // number of points in the set 
+    public boolean isEmpty()    {   return tree == null;    }   // is the set empty?    
+    public int size()           {   return size;            }   // number of points in the set 
     
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-        if  (isEmpty()) tree.setPoint(p);
-        else            insert(tree, p, 0);
-
+        if (p == null) throw new IllegalArgumentException();
+        tree = put(tree, p);
         size++;
     }
 
-    private static Node insert(Node h, Point2D p, int controlator) {
-        if (controlator > 1) return h;
+    private static Node put(Node h, Point2D p) {
+        if (h == null) return new Node(p);
 
-        controlator++;
         int cmp = p.compareTo(h.getPoint());
-        if      (cmp < 0) h.setLb(insert(h.getLb(), p, controlator - 1));
-        else if (cmp > 0) h.setRt(insert(h.getRt(), p, controlator - 1));
-        controlator--;
+        if      (cmp < 0) h.setLb(put(h.getLb(), p));
+        else if (cmp > 0) h.setRt(put(h.getRt(), p));
+        else              h.setPoint(p);
         return h;
     }
     
     // does the set contain point p? 
     public boolean contains(Point2D p) {
-        return false;
+        return get(p) != null;
+    }
+
+    private Point2D get(Point2D p) {
+        if (p == null) throw new IllegalArgumentException();
+        return get(tree, p);
+    }
+
+    private Point2D get(Node x, Point2D p) {
+        while (x != null) {
+            int cmp = p.compareTo(x.getPoint());
+            StdOut.println("   :compare: " +x.getPoint().toString() +" ---> " +p.compareTo(x.getPoint()));
+            if          (cmp > 0) x = x.getRt();
+            else if     (cmp < 0) x = x.getLb();
+            else              return x.getPoint();
+        }
+        return null;
     }
     
     // draw all points to standard draw 
@@ -85,6 +93,30 @@ public class KdTree {
  
     // unit testing of the methods (optional) 
     public static void main(String[] args) {
+        KdTree kdtTree = new KdTree();
+        In in = new In(args[0]);
+        In in2 = new In(args[0]);
+        for (int i = 0; i < 10; i++) {
+            StdOut.print("insert #"+(i + 1)+" in PROGRESS ");
+            double x = in.readDouble();
+            double y = in.readDouble();
+            
+            kdtTree.insert(new Point2D(x, y));
+            StdOut.println(" --SUCCESS");
+            StdOut.println("size: "+kdtTree.size());
+        }
 
+        StdOut.println();
+        StdOut.println("-------------CONTAINS---------------");
+        StdOut.println();
+
+        for (int i = 0; i < 10; i++) {
+            double x = in2.readDouble();
+            double y = in2.readDouble();
+            Point2D p = new Point2D(x, y);
+            StdOut.println(p.toString());
+            StdOut.println(kdtTree.contains(p));
+            StdOut.println();
+        }
     }
 }
