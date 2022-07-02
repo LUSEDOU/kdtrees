@@ -1,7 +1,9 @@
+import edu.princeton.cs.algs4.Draw;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
 import edu.princeton.cs.algs4.Stack;
+import edu.princeton.cs.algs4.StdDraw;
 import edu.princeton.cs.algs4.StdOut;
 
 public class KdTree {
@@ -14,6 +16,7 @@ public class KdTree {
     // construct an empty set of points
     public KdTree() {
         size = 0;
+        tree = new Node(null, new RectHV(0, 0, 1, 1));
     }
 
     private static class Node {
@@ -52,7 +55,7 @@ public class KdTree {
 
         int cmp = p.compareTo(h.getPoint());
         orientation = !orientation;
-        
+
         rect = getRectHV(rect, h.getPoint(), cmp, orientation);
 
         if      (cmp < 0) h.setLb(put(h.getLb(), p, orientation, rect));
@@ -100,7 +103,21 @@ public class KdTree {
 
     // draw all points to standard draw 
     public void draw() {
+        recursiveDraw(tree, VERTICAL);
+    }
 
+    private static void recursiveDraw(Node h, boolean orientation) {
+        if (h == null) return;
+
+        recursiveDraw(h.getLb(), !orientation);
+        recursiveDraw(h.getRt(), !orientation);
+        
+        Point2D p = h.getPoint();
+        RectHV rect = h.getRect();
+
+        if (orientation) StdDraw.line(p.x(), rect.ymax(), p.x(), rect.ymin());
+        else StdDraw.line(rect.xmin(), p.y(), rect.xmax(), p.y());
+        h.getPoint().draw();
     }
 
     // all points that are inside the rectangle (or on the boundary) 
