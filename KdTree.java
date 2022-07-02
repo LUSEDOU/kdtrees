@@ -5,6 +5,9 @@ import edu.princeton.cs.algs4.Stack;
 import edu.princeton.cs.algs4.StdOut;
 
 public class KdTree {
+    private static final boolean VERTICAL = true;
+    private static final boolean HORIZONTAL = false;
+
     private Node tree;
     private int size;
     
@@ -15,20 +18,23 @@ public class KdTree {
 
     private static class Node {
         private Point2D p;
-        //private RectHV rect; 
+        private RectHV rect; 
         private Node lb;
         private Node rt;
 
-        public Node(Point2D p) {
+        public Node(Point2D p, RectHV rect) {
             setPoint(p);
+            setRect(rect);
         }
 
-        public Point2D getPoint()       {   return p;       }
-        public void setPoint(Point2D p) {   this.p = p;     }
-        public Node getRt()             {   return rt;      }
-        public void setRt(Node rt)      {   this.rt = rt;   }
-        public Node getLb()             {   return lb;      }
-        public void setLb(Node lb)      {   this.lb = lb;   }
+        public Point2D getPoint()           {   return p;           }
+        public void setPoint(Point2D p)     {   this.p = p;         }
+        public Node getRt()                 {   return rt;          }
+        public void setRt(Node rt)          {   this.rt = rt;       }
+        public Node getLb()                 {   return lb;          }
+        public void setLb(Node lb)          {   this.lb = lb;       }
+        public RectHV getRect()             {   return rect;        }
+        public void setRect(RectHV rect)    {   this.rect = rect;   }
     }
 
     public boolean isEmpty()    {   return tree == null;    }   // is the set empty?    
@@ -37,17 +43,22 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        tree = put(tree, p);
+        tree = put(tree, p, VERTICAL, null);
         size++;
     }
 
-    private static Node put(Node h, Point2D p) {
-        if (h == null) return new Node(p);
+    private static Node put(Node h, Point2D p, boolean orientation, RectHV rect) {
+        if (h == null) return new Node(p, rect);
 
         int cmp = p.compareTo(h.getPoint());
-        if      (cmp < 0) h.setLb(put(h.getLb(), p));
-        else if (cmp > 0) h.setRt(put(h.getRt(), p));
-        else              h.setPoint(p);
+        orientation = !orientation;
+        
+        rect = getRectHV(rect, h.getPoint(), cmp, orientation);
+
+        if      (cmp < 0) h.setLb(put(h.getLb(), p, orientation, rect));
+        else if (cmp > 0) h.setRt(put(h.getRt(), p, orientation, rect));
+        // else              h.setPoint(p);
+
         return h;
     }
     
@@ -61,17 +72,32 @@ public class KdTree {
         return get(tree, p);
     }
 
-    private Point2D get(Node x, Point2D p) {
+    private static Point2D get(Node x, Point2D p) {
         while (x != null) {
             int cmp = p.compareTo(x.getPoint());
-            StdOut.println("   :compare: " +x.getPoint().toString() +" ---> " +p.compareTo(x.getPoint()));
             if          (cmp > 0) x = x.getRt();
             else if     (cmp < 0) x = x.getLb();
             else              return x.getPoint();
         }
         return null;
     }
-    
+
+    private static RectHV getRectHV(RectHV parent, Point2D p, int cmp, boolean orientation) {
+        if (parent == null) return new RectHV(0, 0, 1, 1);
+
+        double xmin = parent.xmin(), ymin = parent.ymin();
+        double xmax = parent.xmax(), ymax = parent.ymax();
+
+        if (orientation) {
+            if (cmp > 0) xmax = p.x();
+            else         xmin = p.x();
+        }
+        else if (cmp > 0)   ymax = p.y();
+            else            ymin = p.y();
+
+        return new RectHV(xmin, ymin, xmax, ymax);
+    }
+
     // draw all points to standard draw 
     public void draw() {
 
