@@ -58,11 +58,9 @@ public class KdTree {
         if (h == null) return new Node(p, rect);
 
         int cmp = p.compareTo(h.getPoint());
-        rect = getRectHV(rect, h.getPoint(), cmp, orientation);
-
-        orientation = !orientation;
-        if      (cmp < 0) h.setLb(put(h.getLb(), p, orientation, rect));
-        else if (cmp > 0) h.setRt(put(h.getRt(), p, orientation, rect));
+        
+        if      (cmp < 0) h.setLb(setLb(h, p, orientation, rect));
+        else if (cmp > 0) h.setRt(setRt(h, p, orientation, rect));
         // else              h.setPoint(p);
         return h;
     }
@@ -86,6 +84,31 @@ public class KdTree {
             else              return x.getPoint();
         }
         return null;
+    }
+
+    private static Node setLb(Node h, Point2D p, boolean orientation, RectHV parent) {
+        int cmp = setCmp(h.getPoint(), p, orientation);
+        parent = getRectHV(parent, p, cmp, orientation);
+        return put(h.getLb(), p, !orientation, parent);
+    }
+
+    private static Node setRt(Node h, Point2D p, boolean orientation, RectHV parent) {
+        int cmp = setCmp(h.getPoint(), p, orientation);
+        parent = getRectHV(parent, p, cmp, orientation);
+
+        return put(h.getRt(), p, !orientation, parent);
+    }
+
+    private static int setCmp(Point2D parent, Point2D child, boolean orientation) {
+        int cmp;
+        if (orientation) cmp = comparator(parent.x(), child.y());
+        else             cmp = comparator(parent.y(), child.y());
+        return cmp;
+    }
+
+    private static int comparator(double parent, double child) {
+        if (child > parent) return +1;
+        else return -1;
     }
 
     private static RectHV getRectHV(RectHV parent, Point2D p, int cmp, boolean orientation) {
@@ -112,14 +135,14 @@ public class KdTree {
     private static void recursiveDraw(Node h, boolean orientation) {
         if (h == null) return;
 
-        recursiveDraw(h.getLb(), !orientation);
         recursiveDraw(h.getRt(), !orientation);
+        recursiveDraw(h.getLb(), !orientation);
         
         Point2D p = h.getPoint();
         RectHV rect = h.getRect();
 
-        if (orientation) StdDraw.line(p.x(), rect.ymax(), p.x(), rect.ymin());
-        else StdDraw.line(rect.xmin(), p.y(), rect.xmax(), p.y());
+        if (orientation) StdDraw.line(p.x(), rect.ymin(), p.x(), rect.ymax());
+        else             StdDraw.line(rect.xmin(), p.y(), rect.xmax(), p.y());
         h.getPoint().draw();
     }
 
@@ -143,13 +166,13 @@ public class KdTree {
         In in = new In(args[0]);
         In in2 = new In(args[0]);
         for (int i = 0; i < 10; i++) {
-            StdOut.print("insert #"+(i + 1)+" in PROGRESS ");
+            StdOut.println("insert #"+(i + 1)+" in PROGRESS ");
             double x = in.readDouble();
             double y = in.readDouble();
             
             kdtTree.insert(new Point2D(x, y));
             StdOut.println(" --SUCCESS");
-            StdOut.println("size: "+kdtTree.size());
+            //StdOut.println("size: "+kdtTree.size());
         }
 
         StdOut.println();
