@@ -1,4 +1,3 @@
-import edu.princeton.cs.algs4.Draw;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
@@ -45,8 +44,12 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        final RectHV rect = new RectHV(0, 0, 1, 1);
-        tree = put(tree, p, VERTICAL, rect);
+        tree = put(
+            tree, 
+            p, 
+            VERTICAL, 
+            new RectHV(0, 0, 1, 1)
+        );
         size++;
     }
 
@@ -55,10 +58,9 @@ public class KdTree {
         if (h == null) return new Node(p, rect);
 
         int cmp = p.compareTo(h.getPoint());
-        orientation = !orientation;
-
         rect = getRectHV(rect, h.getPoint(), cmp, orientation);
 
+        orientation = !orientation;
         if      (cmp < 0) h.setLb(put(h.getLb(), p, orientation, rect));
         else if (cmp > 0) h.setRt(put(h.getRt(), p, orientation, rect));
         // else              h.setPoint(p);
@@ -87,17 +89,17 @@ public class KdTree {
     }
 
     private static RectHV getRectHV(RectHV parent, Point2D p, int cmp, boolean orientation) {
-        if (parent == null) return new RectHV(0, 0, 1, 1);
-
         double xmin = parent.xmin(), ymin = parent.ymin();
         double xmax = parent.xmax(), ymax = parent.ymax();
 
         if (orientation) {
-            if (cmp > 0) xmax = p.x();
-            else         xmin = p.x();
+            if (cmp > 0) ymin = p.y();
+            else         ymax = p.y();
         }
-        else if (cmp > 0)   ymax = p.y();
-            else            ymin = p.y();
+        else {
+            if (cmp > 0) xmin = p.x();
+            else         xmax = p.x();
+        }
 
         return new RectHV(xmin, ymin, xmax, ymax);
     }
