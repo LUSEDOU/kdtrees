@@ -16,7 +16,6 @@ public class KdTree {
     // construct an empty set of points
     public KdTree() {
         size = 0;
-        tree = new Node(null, new RectHV(0, 0, 1, 1));
     }
 
     private static class Node {
@@ -46,11 +45,13 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        tree = put(tree, p, VERTICAL, null);
+        final RectHV rect = new RectHV(0, 0, 1, 1);
+        tree = put(tree, p, VERTICAL, rect);
         size++;
     }
 
     private static Node put(Node h, Point2D p, boolean orientation, RectHV rect) {
+        StdOut.println("rect: "+rect.toString());
         if (h == null) return new Node(p, rect);
 
         int cmp = p.compareTo(h.getPoint());
@@ -61,12 +62,12 @@ public class KdTree {
         if      (cmp < 0) h.setLb(put(h.getLb(), p, orientation, rect));
         else if (cmp > 0) h.setRt(put(h.getRt(), p, orientation, rect));
         // else              h.setPoint(p);
-
         return h;
     }
     
     // does the set contain point p? 
     public boolean contains(Point2D p) {
+        //StdOut.println("   Point2D: "+p.toString());
         return get(p) != null;
     }
 
