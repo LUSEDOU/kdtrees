@@ -7,7 +7,6 @@ import edu.princeton.cs.algs4.StdOut;
 
 public class KdTree {
     private static final boolean VERTICAL = true;
-    //private static final boolean HORIZONTAL = false;
 
     private Node tree;
     private int size;
@@ -55,6 +54,7 @@ public class KdTree {
     }
 
     private static Node put(Node h, Point2D p, boolean orientation, RectHV rect) {
+        //StdOut.println(rect.toString());
         if (h == null)
             //StdOut.println("  final RECT: ["+rect.xmin()+", "+rect.ymin()+"] x ["+rect.xmax()+" ,"+rect.ymax()+"]" );
             return new Node(p, rect);
@@ -68,12 +68,25 @@ public class KdTree {
     }
     
     private static int compare(boolean or, Point2D p, Node h) {
-        if (or) {
+        if (p.equals(h.getP())) return 0;
+
+        else if (p.x() == h.getP().x()) {
+            if (p.y() > h.getP().y()) return +1;
+            else return -1;
+        }
+        else if (p.y() == h.getP().y()) {
+            if (p.x() > h.getP().x()) return +1;
+            else return -1;
+        } 
+        else if (or) {
             if (p.x() < h.getP().x()) return -1;
-            else                      return +1;
-        } else {
+            else if (p.y() > h.getP().y()) return +1;
+            else return 0;
+        } 
+        else {
             if (p.y() < h.getP().y()) return -1;
-            else                      return +1;
+            else if (p.y() > h.getP().y()) return +1;
+            else return 0;
         }
     }
 
@@ -90,17 +103,11 @@ public class KdTree {
 
     private static Point2D get(Node x, Point2D p, boolean or) {
         while (x != null) {
-            StdOut.print(p.toString() +" compare to " +x.getP().toString());
-            int cmp = p.compareTo(x.getP());
-            if          (cmp < 0) {
-                x = x.getRt();
-                StdOut.println("  RIGHT/UP");
-            }
-            else if     (cmp > 0) {
-                x = x.getLb();
-                StdOut.println("  LEFT/BOTTOM");
-            }
-            else              return x.getP();
+            int cmp = compare(or, p, x);
+            or = !or;
+            if          (cmp < 0)   x = x.getLb();
+            else if     (cmp > 0)   x = x.getRt();
+            else                    return x.getP();
         }
         return null;
     }
