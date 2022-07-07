@@ -43,13 +43,16 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        tree = put(
+        Node insertTree = put(
             tree, 
             p, 
             VERTICAL, 
             new RectHV(0, 0, 1, 1)
         );
-        size++;
+        if (insertTree != null) {
+            tree = insertTree;
+            size++;
+        }
     }
 
     // does the set contain point p? 
@@ -84,10 +87,11 @@ public class KdTree {
         
         if      (cmp < 0) h.setLb(setLb(h, p, !orientation, rect));
         else if (cmp > 0) h.setRt(setRt(h, p, !orientation, rect));
-        // else              h.setPoint(p);
+        //else              return null;
+
         return h;
     }
-    
+
     private static int compare(boolean or, Point2D p, Node h) {
         if (p.equals(h.getP())) return 0;
 
@@ -101,7 +105,7 @@ public class KdTree {
         } 
         else if (or) {
             if (p.x() < h.getP().x()) return -1;
-            else if (p.y() > h.getP().y()) return +1;
+            else if (p.x() > h.getP().x()) return +1;
             else return 0;
         } 
         else {
@@ -136,12 +140,22 @@ public class KdTree {
 
     private static void recursiveDraw(Node h, boolean orientation) {
         if (h == null) return;
+        RectHV rect = h.getRect();
+        double width = rect.xmax() - rect.xmin();
+        double height = rect.ymax() - rect.ymin();
+        if (orientation) 
+            StdDraw.setPenColor(StdDraw.CYAN);
+        else 
+            StdDraw.setPenColor(StdDraw.ORANGE);
+        StdDraw.filledRectangle(
+            rect.xmax() - (width / 2), rect.ymax() - (height / 2), 
+            width / 2, height / 2
+        );
 
         recursiveDraw(h.getRt(), !orientation);
         recursiveDraw(h.getLb(), !orientation);
         
         Point2D p = h.getP();
-        RectHV rect = h.getRect();
         StdDraw.setPenRadius();
         if (orientation) {
             StdDraw.setPenColor(StdDraw.RED);
@@ -206,6 +220,7 @@ public class KdTree {
             Point2D p = new Point2D(x, y);
             kdtree.insert(p);
         }
+        StdOut.println(kdtree.size);
         kdtree.draw();
     }
 }
