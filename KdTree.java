@@ -10,7 +10,6 @@ public class KdTree {
 
     private Node tree;
     private int size;
-    public int n = 10;
     
     // construct an empty set of points
     public KdTree() {
@@ -175,30 +174,15 @@ public class KdTree {
     public static void main(String[] args) {
         KdTree kdtTree = new KdTree();
         In in = new In(args[0]);
-        In in2 = new In(args[0]);
-        int n = kdtTree.n;
-        for (int i = 0; i < n; i++) {
-            StdOut.print("insert #"+(i + 1)+" in PROGRESS ");
+        for (int i = 0; i < 10; i++) {
             double x = in.readDouble();
             double y = in.readDouble();
             
-            kdtTree.insert(new Point2D(x, y));
-            StdOut.println(" --SUCCESS");
-            //StdOut.println("size: "+kdtTree.size());
-        }
-
-        StdOut.println();
-        StdOut.println("-------------CONTAINS---------------");
-        StdOut.println();
-
-        for (int i = 0; i < n; i++) {
-            double x = in2.readDouble();
-            double y = in2.readDouble();
             Point2D p = new Point2D(x, y);
-            StdOut.println(p.toString());
+            kdtTree.insert(p);
             StdOut.println(kdtTree.contains(p));
-            StdOut.println();
         }
+        StdOut.println("size: "+kdtTree.size());
         kdtTree.draw();
     }
 }
