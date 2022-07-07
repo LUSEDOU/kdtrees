@@ -163,31 +163,31 @@ public class KdTree {
         Stack<Point2D> stack = new Stack<>();
         if (!tree.getRect().intersects(rect)) return stack;
         
-        double[] r = {rect.xmin(), rect.ymin(), rect.xmax(), rect.ymax()};
-        
-        stack = recursiveRange(r, tree, stack, VERTICAL);
+        stack = recursiveRange(tree, stack, VERTICAL);
         return stack;
     }
     
-    private Stack<Point2D> recursiveRange(double[] r, Node h, Stack<Point2D> stack, boolean or) {
+    private Stack<Point2D> recursiveRange(Node h, Stack<Point2D> stack, boolean or) {
         if (h == null) return stack;
 
+        RectHV r = h.getRect();
         Point2D p = h.getP();
         or = !or;
         if (!or) {
-            if (r[0] > p.x()) {
-                stack = recursiveRange(r, h.getLb(), stack, or);
-                if (r[3] > p.y() && r[1] < p.y()) stack.push(p);
-            }
-            else if (r[2] < p.x()) stack = recursiveRange(r, h.getRt(), stack, or);
+            if (r.xmin() < p.x()) 
+                stack = recursiveRange(h.getLb(), stack, or);
+            if (r.xmax() > p.x()) 
+                stack = recursiveRange(h.getRt(), stack, or);
         }
         else {
-            if (r[1] < p.y()) {
-                stack = recursiveRange(r, h.getLb(), stack, or);
-                if (r[0] > p.x() && r[2] < p.x()) stack.push(p);
-            }
-            else if (r[3] > p.y()) stack = recursiveRange(r, h.getRt(), stack, or);
+            if (r.ymin() < p.y())
+                stack = recursiveRange(h.getLb(), stack, or);
+            if (r.ymax() > p.y()) 
+                stack = recursiveRange(h.getRt(), stack, or);
         }
+
+        if (r.contains(p)) stack.push(p);
+
         return stack;
     }
 
