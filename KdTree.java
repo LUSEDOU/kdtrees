@@ -52,6 +52,28 @@ public class KdTree {
         size++;
     }
 
+    // does the set contain point p? 
+    public boolean contains(Point2D p) {
+        //StdOut.println("   Point2D: "+p.toString());
+        return get(p) != null;
+    }
+
+    private Point2D get(Point2D p) {
+        if (p == null) throw new IllegalArgumentException();
+        return get(tree, p, VERTICAL);
+    }
+
+    private static Point2D get(Node x, Point2D p, boolean or) {
+        while (x != null) {
+            int cmp = compare(or, p, x);
+            or = !or;
+            if          (cmp < 0)   x = x.getLb();
+            else if     (cmp > 0)   x = x.getRt();
+            else                    return x.getP();
+        }
+        return null;
+    }
+
     private static Node put(Node h, Point2D p, boolean orientation, RectHV rect) {
         //StdOut.println(rect.toString());
         if (h == null)
@@ -87,28 +109,6 @@ public class KdTree {
             else if (p.y() > h.getP().y()) return +1;
             else return 0;
         }
-    }
-
-    // does the set contain point p? 
-    public boolean contains(Point2D p) {
-        //StdOut.println("   Point2D: "+p.toString());
-        return get(p) != null;
-    }
-
-    private Point2D get(Point2D p) {
-        if (p == null) throw new IllegalArgumentException();
-        return get(tree, p, VERTICAL);
-    }
-
-    private static Point2D get(Node x, Point2D p, boolean or) {
-        while (x != null) {
-            int cmp = compare(or, p, x);
-            or = !or;
-            if          (cmp < 0)   x = x.getLb();
-            else if     (cmp > 0)   x = x.getRt();
-            else                    return x.getP();
-        }
-        return null;
     }
 
     private static Node setLb(Node h, Point2D p, boolean orientation, RectHV parent) {
@@ -158,13 +158,39 @@ public class KdTree {
 
     // all points that are inside the rectangle (or on the boundary) 
     public Iterable<Point2D> range(RectHV rect) {
-        Point2D p = new Point2D(0, 0);
-        Stack<Point2D> stack = new Stack<>();
+        if (rect == null) throw new IllegalArgumentException();
 
-        stack.push(p);
+        Stack<Point2D> stack = new Stack<>();
+        if (!tree.getRect().intersects(rect)) return stack;
+        
+        double[] r = {rect.xmin(), rect.ymin(), rect.xmax(), rect.ymax()};
+        
+        stack = recursiveRange(r, tree, stack, VERTICAL);
         return stack;
     }
     
+    private Stack<Point2D> recursiveRange(double[] r, Node h, Stack<Point2D> stack, boolean or) {
+        if (h == null) return stack;
+
+        Point2D p = h.getP();
+        or = !or;
+        if (!or) {
+            if (r[0] > p.x()) {
+                stack = recursiveRange(r, h.getLb(), stack, or);
+                if (r[3] > p.y() && r[1] < p.y()) stack.push(p);
+            }
+            else if (r[2] < p.x()) stack = recursiveRange(r, h.getRt(), stack, or);
+        }
+        else {
+            if (r[1] < p.y()) {
+                stack = recursiveRange(r, h.getLb(), stack, or);
+                if (r[0] > p.x() && r[2] < p.x()) stack.push(p);
+            }
+            else if (r[3] > p.y()) stack = recursiveRange(r, h.getRt(), stack, or);
+        }
+        return stack;
+    }
+
     // a nearest neighbor in the set to point p; null if the set is empty 
     public Point2D nearest(Point2D p) {
         return p;
