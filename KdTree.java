@@ -198,17 +198,14 @@ public class KdTree {
  
     // unit testing of the methods (optional) 
     public static void main(String[] args) {
-        KdTree kdtTree = new KdTree();
         In in = new In(args[0]);
-        for (int i = 0; i < 10; i++) {
+        KdTree kdtree = new KdTree();
+        while (!in.isEmpty()) {
             double x = in.readDouble();
             double y = in.readDouble();
-            
             Point2D p = new Point2D(x, y);
-            kdtTree.insert(p);
-            StdOut.println(kdtTree.contains(p));
+            kdtree.insert(p);
         }
-        StdOut.println("size: "+kdtTree.size());
-        kdtTree.draw();
+        kdtree.draw();
     }
 }
