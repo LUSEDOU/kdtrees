@@ -5,25 +5,33 @@ import edu.princeton.cs.algs4.Stack;
 import edu.princeton.cs.algs4.StdDraw;
 import edu.princeton.cs.algs4.StdOut;
 
+/**
+ * 
+ * 
+ * @author LUSEDOU
+ */
 public class KdTree {
     private static final boolean VERTICAL = true;
 
     private Node root;      // root of the KdTree
     private int size;       // size of the root
-    
-    /**
-     * Initializes an empty symbol table and set 
-     * size to zero
-     */
-    public KdTree() {
-        size = 0;
-    }
 
-    // KdTree helper node data type
+    /**
+     *  The {@code Node} class is an immutable data type to encapsulate a
+     *  {@code Point2D} and other two {@code Node} lb, and rt.
+     *  <p>
+     *  Note: this class is only for helper the {@code KdTree} class
+     */
     private static class Node {
         private Point2D p;      // Point2D
         private Node lb, rt;    // links to left and right
 
+        /**
+         * Initializes a {@code Node} which contains two null {@code Node}
+         * lb, rt, and save the point parameter.
+         * 
+         * @param p the Point2D
+         */
         public Node(Point2D p) {
             setP(p);
         }
@@ -34,11 +42,12 @@ public class KdTree {
         public void setRt(Node rt)          {   this.rt = rt;       }
         public Node getLb()                 {   return lb;          }
         public void setLb(Node lb)          {   this.lb = lb;       }
-
+        
         public RectHV getRect(Node prnt, RectHV rect, boolean or) {
-            if (prnt == null || rect == null) 
-                    throw new IllegalArgumentException();
+            checkNull(prnt);
+            checkNull(rect);
 
+            // Compares this point with a other node's point
             int cmp = compare(!or, this.getP(), prnt.getP());
 
             if      (cmp > 0) {
@@ -60,13 +69,36 @@ public class KdTree {
             else return rect;
         }
     }
+    
+    /**
+     * Construct an empty KdTree and initialize size to zero
+     */
+    public KdTree() {
+        root = null;
+        size = 0;
+    }
 
-    public boolean isEmpty()    {   return root == null;    }   // is the set empty?    
-    public int size()           {   return size;            }   // number of points in the set 
+    /**
+     * Is the set empty?
+     * 
+     * @return true if the root is null
+     */
+    public boolean isEmpty() {   
+        return root == null;    
+    }
+
+    /**
+     * Number of points in the {@code KdTree}
+     * 
+     * @return  size
+     */
+    public int size() {
+        return size;            
+    } 
     
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-        if (p == null) throw new IllegalArgumentException();
+        checkNull(p);
         root = put(
             root, 
             p, 
@@ -82,7 +114,7 @@ public class KdTree {
     }
 
     private Point2D get(Point2D p) {
-        if (p == null) throw new IllegalArgumentException();
+        checkNull(p);
         return get(root, p, VERTICAL);
     }
 
@@ -110,29 +142,6 @@ public class KdTree {
         //else              return null;
 
         return h;
-    }
-
-    private static int compare(boolean or, Point2D p, Point2D q) {
-        if (p.equals(q)) return 0;
-
-        else if (p.x() == q.x()) {
-            if (p.y() > q.y()) return +1;
-            else return -1;
-        }
-        else if (p.y() == q.y()) {
-            if (p.x() > q.x()) return +1;
-            else return -1;
-        } 
-        else if (or) {
-            if (p.x() < q.x()) return -1;
-            else if (p.x() > q.x()) return +1;
-            else return 0;
-        } 
-        else {
-            if (p.y() < q.y()) return -1;
-            else if (p.y() > q.y()) return +1;
-            else return 0;
-        }
     }
 
     // draw all points to standard draw 
@@ -210,9 +219,93 @@ public class KdTree {
 
     // a nearest neighbor in the set to point p; null if the set is empty 
     public Point2D nearest(Point2D p) {
-        return p;
+        checkNull(p);
+        return isEmpty() 
+                ? null 
+                : nearest(p, root.getP(), root, root, new RectHV(0, 0, 1, 1), VERTICAL);
     }
- 
+
+    /**
+     * idk what this do exactly and why works
+     * The API was a little confuse
+     * 
+     * Credits: Micong Huang
+     * 
+     * @param trgt
+     * @param clst
+     * @param node
+     * @param prnt
+     * @param rect
+     * @param or
+     * @return
+     */
+    private Point2D nearest(Point2D trgt, Point2D clst, Node node, Node prnt, RectHV rect, boolean or) {
+        if (node == null) return clst;
+
+        double clstDist = clst.distanceTo(trgt);
+        rect = node.getRect(prnt, rect, or);
+
+        if (rect.distanceTo(trgt) < clstDist) {
+            double nodeDist = node.getP().distanceTo(trgt);
+
+            if (nodeDist < clstDist) clst = node.getP();
+            
+            int cmp = compare(or, node.getP(), trgt);
+            or = !or;
+
+            if (cmp > 0) {
+                clst = nearest(trgt, clst, node.getLb(), node, rect, or);
+                clst = nearest(trgt, clst, node.getRt(), node, rect, or);
+            } else {
+                clst = nearest(trgt, clst, node.getRt(), node, rect, or);
+                clst = nearest(trgt, clst, node.getLb(), node, rect, or);
+            }
+        }
+        return clst;
+    }
+
+
+    /**
+     * Compares two {@code Point2D} p and q. Unlike Point2D's {@code compareTo} method
+     * 'tis is compatible with the orientation.
+     * 
+     * @param or the orientation of the Node (expressed in a boolean)
+     * @param p  the point comparator
+     * @param q  the point comparable
+     * @return   {@code 0} if they're equals;
+     *           {@code 1} if their {@code x} are equals but comparator y is greater,
+     *                     if their {@code y} are equals but comparator x is greater,
+     *                     if comparator a coordinate are greater depending on orientation;
+     *           {@code -1} otherwise;
+     */
+    private static int compare(boolean or, Point2D p, Point2D q) {
+        if (p.equals(q)) return 0;
+
+        else if (p.x() == q.x()) {
+            if (p.y() > q.y()) return +1;
+            else return -1;
+        }
+        else if (p.y() == q.y()) {
+            if (p.x() > q.x()) return +1;
+            else return -1;
+        } 
+        else if (or) {
+            if         (p.x() < q.x())    return -1;
+            else /* if (p.x() > q.x()) */ return +1;
+            // else return 0;
+        } 
+        else {
+            if         (p.y() < q.y())    return -1;
+            else /* if (p.y() > q.y()) */ return +1;
+            // else return 0;
+        }
+    }
+
+    private static void checkNull(Object obj) {
+        if (obj == null) 
+            throw new NullPointerException();
+    }
+
     // unit testing of the methods (optional) 
     public static void main(String[] args) {
         In in = new In(args[0]);
