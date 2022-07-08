@@ -8,23 +8,24 @@ import edu.princeton.cs.algs4.StdOut;
 public class KdTree {
     private static final boolean VERTICAL = true;
 
-    private Node tree;
-    private int size;
+    private Node root;      // root of the KdTree
+    private int size;       // size of the root
     
-    // construct an empty set of points
+    /**
+     * Initializes an empty symbol table and set 
+     * size to zero
+     */
     public KdTree() {
         size = 0;
     }
 
+    // KdTree helper node data type
     private static class Node {
-        private Point2D p;
-        private RectHV rect; 
-        private Node lb;
-        private Node rt;
+        private Point2D p;      // Point2D
+        private Node lb, rt;    // links to left and right
 
-        public Node(Point2D p, RectHV rect) {
+        public Node(Point2D p) {
             setP(p);
-            setRect(rect);
         }
 
         public Point2D getP()               {   return p;           }
@@ -33,26 +34,45 @@ public class KdTree {
         public void setRt(Node rt)          {   this.rt = rt;       }
         public Node getLb()                 {   return lb;          }
         public void setLb(Node lb)          {   this.lb = lb;       }
-        public RectHV getRect()             {   return rect;        }
-        public void setRect(RectHV rect)    {   this.rect = rect;   }
+
+        public RectHV getRect(Node prnt, RectHV rect, boolean or) {
+            if (prnt == null || rect == null) 
+                    throw new IllegalArgumentException();
+
+            int cmp = compare(!or, this.getP(), prnt.getP());
+
+            if      (cmp > 0) {
+                if (or)
+                    return new RectHV(rect.xmin(), 
+                        prnt.getP().y(), rect.xmax(), rect.ymax());
+                else 
+                    return new RectHV(prnt.getP().x(), 
+                        rect.ymin(), rect.xmax(), rect.ymax());
+            }
+            else if (cmp < 0) {
+                if  (or)
+                    return new RectHV(rect.xmin(), 
+                        rect.ymin(), rect.xmax(), prnt.getP().y());
+                else 
+                    return new RectHV(rect.xmin(), 
+                        rect.ymin(), prnt.getP().x(), rect.ymax());
+            }
+            else return rect;
+        }
     }
 
-    public boolean isEmpty()    {   return tree == null;    }   // is the set empty?    
+    public boolean isEmpty()    {   return root == null;    }   // is the set empty?    
     public int size()           {   return size;            }   // number of points in the set 
     
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        Node insertTree = put(
-            tree, 
+        root = put(
+            root, 
             p, 
-            VERTICAL, 
-            new RectHV(0, 0, 1, 1)
+            VERTICAL
         );
-        if (insertTree != null) {
-            tree = insertTree;
-            size++;
-        }
+        size++;
     }
 
     // does the set contain point p? 
@@ -63,87 +83,71 @@ public class KdTree {
 
     private Point2D get(Point2D p) {
         if (p == null) throw new IllegalArgumentException();
-        return get(tree, p, VERTICAL);
+        return get(root, p, VERTICAL);
     }
 
-    private static Point2D get(Node x, Point2D p, boolean or) {
-        while (x != null) {
-            int cmp = compare(or, p, x);
+    private static Point2D get(Node prnt, Point2D p, boolean or) {
+        while (prnt != null) {
+            int cmp = compare(or, p, prnt.getP());
             or = !or;
-            if          (cmp < 0)   x = x.getLb();
-            else if     (cmp > 0)   x = x.getRt();
-            else                    return x.getP();
+            if          (cmp < 0)   prnt = prnt.getLb();
+            else if     (cmp > 0)   prnt = prnt.getRt();
+            else                    return prnt.getP();
         }
         return null;
     }
 
-    private static Node put(Node h, Point2D p, boolean orientation, RectHV rect) {
+    private static Node put(Node h, Point2D p, boolean orientation) {
         //StdOut.println(rect.toString());
         if (h == null)
             //StdOut.println("  final RECT: ["+rect.xmin()+", "+rect.ymin()+"] x ["+rect.xmax()+" ,"+rect.ymax()+"]" );
-            return new Node(p, rect);
+            return new Node(p);
 
-        int cmp = compare(orientation, p, h);
+        int cmp = compare(orientation, p, h.getP());
         
-        if      (cmp < 0) h.setLb(setLb(h, p, !orientation, rect));
-        else if (cmp > 0) h.setRt(setRt(h, p, !orientation, rect));
+        if      (cmp < 0) h.setLb(put(h.getLb(), p, !orientation));
+        else if (cmp > 0) h.setRt(put(h.getRt(), p, !orientation));
         //else              return null;
 
         return h;
     }
 
-    private static int compare(boolean or, Point2D p, Node h) {
-        if (p.equals(h.getP())) return 0;
+    private static int compare(boolean or, Point2D p, Point2D q) {
+        if (p.equals(q)) return 0;
 
-        else if (p.x() == h.getP().x()) {
-            if (p.y() > h.getP().y()) return +1;
+        else if (p.x() == q.x()) {
+            if (p.y() > q.y()) return +1;
             else return -1;
         }
-        else if (p.y() == h.getP().y()) {
-            if (p.x() > h.getP().x()) return +1;
+        else if (p.y() == q.y()) {
+            if (p.x() > q.x()) return +1;
             else return -1;
         } 
         else if (or) {
-            if (p.x() < h.getP().x()) return -1;
-            else if (p.x() > h.getP().x()) return +1;
+            if (p.x() < q.x()) return -1;
+            else if (p.x() > q.x()) return +1;
             else return 0;
         } 
         else {
-            if (p.y() < h.getP().y()) return -1;
-            else if (p.y() > h.getP().y()) return +1;
+            if (p.y() < q.y()) return -1;
+            else if (p.y() > q.y()) return +1;
             else return 0;
         }
-    }
-
-    private static Node setLb(Node h, Point2D p, boolean orientation, RectHV parent) {
-        if (orientation)
-            parent = new RectHV(parent.xmin(), parent.ymin(), parent.xmax(), h.getP().y());
-        else 
-            parent = new RectHV(parent.xmin(), parent.ymin(), h.getP().x(), parent.ymax());
-
-        return put(h.getLb(), p, orientation, parent);
-    }
-
-    private static Node setRt(Node h, Point2D p, boolean orientation, RectHV parent) {
-        if (orientation)
-            parent = new RectHV(parent.xmin(), h.getP().y(), parent.xmax(), parent.ymax());
-        else 
-            parent = new RectHV(h.getP().x(), parent.ymin(), parent.xmax(), parent.ymax());
-
-        return put(h.getRt(), p, orientation, parent);
     }
 
     // draw all points to standard draw 
     public void draw() {
-        recursiveDraw(tree, VERTICAL);
+        recursiveDraw(root, root, VERTICAL, new RectHV(0, 0, 1, 1));
     }
 
-    private static void recursiveDraw(Node h, boolean orientation) {
-        if (h == null) return;
-        RectHV rect = h.getRect();
+    private static void recursiveDraw(Node prnt, Node chld, boolean or, RectHV rect) {
+        if (chld == null) return;
+
+        rect = chld.getRect(prnt, rect, or);
+
         double width = rect.xmax() - rect.xmin();
         double height = rect.ymax() - rect.ymin();
-        if (orientation) 
+        if (or) 
             StdDraw.setPenColor(StdDraw.CYAN);
         else 
             StdDraw.setPenColor(StdDraw.ORANGE);
@@ -152,12 +156,12 @@ public class KdTree {
             width / 2, height / 2
         );
 
-        recursiveDraw(h.getRt(), !orientation);
-        recursiveDraw(h.getLb(), !orientation);
+        recursiveDraw(chld, chld.getRt(), !or, rect);
+        recursiveDraw(chld, chld.getLb(), !or, rect);
         
-        Point2D p = h.getP();
+        Point2D p = chld.getP();
         StdDraw.setPenRadius();
-        if (orientation) {
+        if (or) {
             StdDraw.setPenColor(StdDraw.RED);
             StdDraw.line(p.x(), rect.ymin(), p.x(), rect.ymax());
         }
@@ -175,29 +179,28 @@ public class KdTree {
         if (rect == null) throw new IllegalArgumentException();
 
         Stack<Point2D> stack = new Stack<>();
-        if (!tree.getRect().intersects(rect)) return stack;
         
-        stack = recursiveRange(tree, stack, VERTICAL);
+        stack = recursiveRange(root, root, stack, VERTICAL, new RectHV(0, 0, 1, 1));
         return stack;
     }
     
-    private Stack<Point2D> recursiveRange(Node h, Stack<Point2D> stack, boolean or) {
-        if (h == null) return stack;
+    private Stack<Point2D> recursiveRange(Node prnt, Node chld, Stack<Point2D> stack, boolean or, RectHV r) {
+        if (chld == null) return stack;
 
-        RectHV r = h.getRect();
-        Point2D p = h.getP();
+        r = chld.getRect(prnt, r, or);
+        Point2D p = chld.getP();
         or = !or;
         if (!or) {
             if (r.xmin() < p.x()) 
-                stack = recursiveRange(h.getLb(), stack, or);
+                stack = recursiveRange(chld, chld.getLb(), stack, or, r);
             if (r.xmax() > p.x()) 
-                stack = recursiveRange(h.getRt(), stack, or);
+                stack = recursiveRange(chld, chld.getRt(), stack, or, r);
         }
         else {
             if (r.ymin() < p.y())
-                stack = recursiveRange(h.getLb(), stack, or);
+                stack = recursiveRange(chld, chld.getLb(), stack, or, r);
             if (r.ymax() > p.y()) 
-                stack = recursiveRange(h.getRt(), stack, or);
+                stack = recursiveRange(chld, chld.getRt(), stack, or, r);
         }
 
         if (r.contains(p)) stack.push(p);
