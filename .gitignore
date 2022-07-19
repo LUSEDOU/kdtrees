@@ -1,5 +1,14 @@
 # ignore ALL .log files
 *.log
+*.txt
+.vscode/
+.lift/
+.idea/
+*.iml
+*.png
 
-# ignore ALL files in ANY directory named temp
+# ignore ALL files in ANY directory named edu
 edu/
+
+*.class
+*.zip

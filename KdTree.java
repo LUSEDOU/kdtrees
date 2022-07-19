@@ -11,6 +11,11 @@ import edu.princeton.cs.algs4.StdOut;
  * @author LUSEDOU
  */
 public class KdTree {
+    private static enum Orientation {
+        VERTICAL, 
+        HORIZONTAL,
+    };
+
     private static final boolean VERTICAL = true;
 
     private Node root;      // root of the KdTree
@@ -43,30 +48,62 @@ public class KdTree {
         public Node getLb()                 {   return lb;          }
         public void setLb(Node lb)          {   this.lb = lb;       }
         
-        public RectHV getRect(Node prnt, RectHV rect, boolean or) {
-            checkNull(prnt);
+        public RectHV getRect(Node parent, RectHV rect, boolean or) {
+            checkNull(parent);
             checkNull(rect);
 
-            // Compares this point with a other node's point
-            int cmp = compare(!or, this.getP(), prnt.getP());
 
+            Point2D pParent = parent.getP();
+
+            // Compares this point with a other node's point
+            int cmp = compare(!or, this.getP(), parent.getP());
+
+            
             if      (cmp > 0) {
                 if (or)
                     return new RectHV(rect.xmin(), 
-                        prnt.getP().y(), rect.xmax(), rect.ymax());
+                        parent.getP().y(), rect.xmax(), rect.ymax());
                 else 
-                    return new RectHV(prnt.getP().x(), 
+                    return new RectHV(parent.getP().x(), 
                         rect.ymin(), rect.xmax(), rect.ymax());
             }
             else if (cmp < 0) {
                 if  (or)
                     return new RectHV(rect.xmin(), 
-                        rect.ymin(), rect.xmax(), prnt.getP().y());
+                        rect.ymin(), rect.xmax(), parent.getP().y());
                 else 
                     return new RectHV(rect.xmin(), 
-                        rect.ymin(), prnt.getP().x(), rect.ymax());
+                        rect.ymin(), parent.getP().x(), rect.ymax());
             }
             else return rect;
+        }
+
+        private RectHV getRectRightOrTop(Point2D parent, RectHV rect, Orientation or) {
+            return isVertical(or)
+                    ? new RectHV(rect.xmin(), parent.y(), 
+                                 rect.xmax(), rect.ymax())
+                    : new RectHV(parent.x(), rect.ymin(), 
+                                 rect.xmax(), rect.ymax());
+        }
+
+        private RectHV getRectLeftOrBottom(Point2D parent, RectHV rect, Orientation or) {
+            return isVertical(or)
+                    ? new RectHV(rect.xmin(), rect.ymin(), 
+                                 rect.xmax(), parent.y())
+                    : new RectHV(rect.xmin(), rect.ymin(), 
+                                 parent.x(), rect.ymax());
+        }
+
+        public boolean isRightOrTop(Point2D q, Orientation or) {
+            return isVertical(or)
+                    ? this.getP().y() > q.y()
+                    : this.getP().x() < q.x() ;
+        }
+
+        public boolean isLeftOrBottom(Point2D q, Orientation or) {
+            return isVertical(or)
+                    ? this.getP().x() > q.x() 
+                    : this.getP().y() < q.y();
         }
     }
     
@@ -99,17 +136,11 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         checkNull(p);
-        root = put(
-            root, 
-            p, 
-            VERTICAL
-        );
-        size++;
+        put(p);
     }
 
     // does the set contain point p? 
     public boolean contains(Point2D p) {
-        //StdOut.println("   Point2D: "+p.toString());
         return get(p) != null;
     }
 
@@ -129,19 +160,20 @@ public class KdTree {
         return null;
     }
 
-    private static Node put(Node h, Point2D p, boolean orientation) {
-        //StdOut.println(rect.toString());
-        if (h == null)
-            //StdOut.println("  final RECT: ["+rect.xmin()+", "+rect.ymin()+"] x ["+rect.xmax()+" ,"+rect.ymax()+"]" );
-            return new Node(p);
+    private void put(Point2D p) {
+        Node child = root;
+        Orientation or = Orientation.VERTICAL;
+        do {
+            if (child.p.equals(p)) return;
 
-        int cmp = compare(orientation, p, h.getP());
-        
-        if      (cmp < 0) h.setLb(put(h.getLb(), p, !orientation));
-        else if (cmp > 0) h.setRt(put(h.getRt(), p, !orientation));
-        //else              return null;
+            or = changeOr(or);
+            child = child.isRightOrTop(p, or)
+                    ? child.lb
+                    : child.rt;
+        } while (child != null);
 
-        return h;
+        child = new Node(p);
+        size++;
     }
 
     // draw all points to standard draw 
@@ -242,11 +274,11 @@ public class KdTree {
     private Point2D nearest(Point2D trgt, Point2D clst, Node node, Node prnt, RectHV rect, boolean or) {
         if (node == null) return clst;
 
-        double clstDist = clst.distanceTo(trgt);
+        double clstDist = clst.distanceSquaredTo(trgt);
         rect = node.getRect(prnt, rect, or);
 
-        if (rect.distanceTo(trgt) < clstDist) {
-            double nodeDist = node.getP().distanceTo(trgt);
+        if (rect.distanceSquaredTo(trgt) < clstDist) {
+            double nodeDist = node.getP().distanceSquaredTo(trgt);
 
             if (nodeDist < clstDist) clst = node.getP();
             
@@ -304,6 +336,17 @@ public class KdTree {
     private static void checkNull(Object obj) {
         if (obj == null) 
             throw new NullPointerException();
+    }
+
+    private static boolean isVertical(Orientation or) {
+        return or == Orientation.VERTICAL;
+    }
+
+    private static Orientation changeOr(Orientation or) {
+        Orientation[] values = Orientation.values();
+        
+        int newOrdinal = (or.ordinal() + 1) / values.length;
+        return values[newOrdinal];
     }
 
     // unit testing of the methods (optional) 
