@@ -96,14 +96,38 @@ public class KdTree {
 
         public boolean isRightOrTop(Point2D q, Orientation or) {
             return isVertical(or)
-                    ? this.getP().y() > q.y()
-                    : this.getP().x() < q.x() ;
+                    ? isRight(q)
+                    : isTop(q);
         }
 
-        public boolean isLeftOrBottom(Point2D q, Orientation or) {
+        public boolean isLeftOrBottom(Point2D q, Orientation or) {            
             return isVertical(or)
-                    ? this.getP().x() > q.x() 
+                    ? isLeft(q) 
+                    : isBottom(q);
+        }
+
+        public boolean isLeft(Point2D q) {
+            return this.getP().x() == q.x()
+                    ? this.getP().y() > q.y()
+                    : this.getP().x() > q.x();
+        }
+
+        public boolean isRight(Point2D q) {
+            return this.getP().x() == q.x()
+                    ? this.getP().y() < q.y()
+                    : this.getP().x() < q.x();
+        }
+
+        public boolean isTop(Point2D q) {
+            return this.getP().y() == q.y()
+                    ? this.getP().x() < q.x()
                     : this.getP().y() < q.y();
+        }
+        
+        public boolean isBottom(Point2D q) {
+            return this.getP().y() == q.y()
+                    ? this.getP().x() > q.x()
+                    : this.getP().y() > q.y();
         }
     }
     
@@ -161,19 +185,37 @@ public class KdTree {
     }
 
     private void put(Point2D p) {
-        Node child = root;
-        Orientation or = Orientation.VERTICAL;
-        do {
-            if (child.p.equals(p)) return;
+        Object[] put = put(root, p, false, Orientation.VERTICAL);
+        root = (Node) put[0];
+        if ((boolean) put[1]) ++size;
+    }
 
-            or = changeOr(or);
-            child = child.isRightOrTop(p, or)
-                    ? child.lb
-                    : child.rt;
-        } while (child != null);
+    private static Object[] put(Node current, Point2D p, boolean newPoint, Orientation orientation) {
+        if (current == null) {
+            Object[] put = {
+                new Node(p),
+                true,
+            };
+            return put;
+        }
 
-        child = new Node(p);
-        size++;
+        if (current.isRightOrTop(p, orientation)) {
+            orientation = changeOr(orientation);
+            Object[] response = put(current.getRt(), p, newPoint, orientation);
+
+            current.setRt((Node)response[0]);
+            newPoint = (boolean)response[1];
+        }
+        else if (current.isLeftOrBottom(p, orientation)) {
+            orientation = changeOr(orientation);
+            Object[] response = put(current.getLb(), p, newPoint, orientation);
+
+            current.setLb((Node)response[0]);
+            newPoint = (boolean)response[1];
+        }
+
+        Object[] put = {current, newPoint};
+        return put;
     }
 
     // draw all points to standard draw 
@@ -344,22 +386,21 @@ public class KdTree {
 
     private static Orientation changeOr(Orientation or) {
         Orientation[] values = Orientation.values();
-        
-        int newOrdinal = (or.ordinal() + 1) / values.length;
+        int newOrdinal = (or.ordinal() + 1) % values.length;
         return values[newOrdinal];
     }
 
     // unit testing of the methods (optional) 
     public static void main(String[] args) {
         In in = new In(args[0]);
-        KdTree kdtree = new KdTree();
+        KdTree kdTree = new KdTree();
         while (!in.isEmpty()) {
             double x = in.readDouble();
             double y = in.readDouble();
             Point2D p = new Point2D(x, y);
-            kdtree.insert(p);
+            kdTree.insert(p);
         }
-        StdOut.println(kdtree.size);
-        kdtree.draw();
+        StdOut.println(kdTree.size);
+        kdTree.draw();
     }
 }
