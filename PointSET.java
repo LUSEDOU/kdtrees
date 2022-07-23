@@ -68,10 +68,10 @@ public class PointSET {
         if (set.isEmpty()) return null;
 
         Point2D closest = set.max();
-        double closestDistance = p.distanceTo(closest);
+        double closestDistance = p.distanceSquaredTo(closest);
         for (Point2D q : set) {
-            if (closestDistance > p.distanceTo(q)) {
-                closestDistance = p.distanceTo(q);
+            if (closestDistance > p.distanceSquaredTo(q)) {
+                closestDistance = p.distanceSquaredTo(q);
                 closest = q;
             }
         }
@@ -85,6 +85,6 @@ public class PointSET {
 
     // unit testing of the methods (optional) 
     public static void main(String[] args) {
-
+        // Nothing
     }
 }

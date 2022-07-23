@@ -2,5 +2,8 @@
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
         "e:\\programacion\\java\\algs4.jar"
+    ],
+    "cSpell.ignoreWords": [
+        "Micong"
     ]
 }

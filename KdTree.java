@@ -11,12 +11,10 @@ import edu.princeton.cs.algs4.StdOut;
  * @author LUSEDOU
  */
 public class KdTree {
-    private static enum Orientation {
+    private enum Orientation {
         VERTICAL, 
         HORIZONTAL,
     };
-
-    private static final boolean VERTICAL = true;
 
     private Node root;      // root of the KdTree
     private int size;       // size of the root
@@ -48,47 +46,20 @@ public class KdTree {
         public Node getLb()                 {   return lb;          }
         public void setLb(Node lb)          {   this.lb = lb;       }
         
-        public RectHV getRect(Node parent, RectHV rect, boolean or) {
-            checkNull(parent);
-            checkNull(rect);
-
-            // Compares this point with a other node's point
-            int cmp = compare(!or, this.getP(), parent.getP());
-
-            
-            if      (cmp > 0) {
-                if (or)
-                    return new RectHV(rect.xmin(), 
-                        parent.getP().y(), rect.xmax(), rect.ymax());
-                else 
-                    return new RectHV(parent.getP().x(), 
-                        rect.ymin(), rect.xmax(), rect.ymax());
-            }
-            else if (cmp < 0) {
-                if  (or)
-                    return new RectHV(rect.xmin(), 
-                        rect.ymin(), rect.xmax(), parent.getP().y());
-                else 
-                    return new RectHV(rect.xmin(), 
-                        rect.ymin(), parent.getP().x(), rect.ymax());
-            }
-            else return rect;
-        }
-
-        private RectHV getRectRightOrTop(Point2D parent, RectHV rect, Orientation or) {
+        private RectHV getRectRightOrTop(RectHV rect, Orientation or) {
             return isVertical(or)
-                    ? new RectHV(rect.xmin(), parent.y(), 
+                    ? new RectHV(rect.xmin(), this.getP().y(), 
                                  rect.xmax(), rect.ymax())
-                    : new RectHV(parent.x(), rect.ymin(), 
+                    : new RectHV(this.getP().x(), rect.ymin(), 
                                  rect.xmax(), rect.ymax());
         }
 
-        private RectHV getRectLeftOrBottom(Point2D parent, RectHV rect, Orientation or) {
+        private RectHV getRectLeftOrBottom(RectHV rect, Orientation or) {
             return isVertical(or)
                     ? new RectHV(rect.xmin(), rect.ymin(), 
-                                 rect.xmax(), parent.y())
+                                 rect.xmax(), this.getP().y())
                     : new RectHV(rect.xmin(), rect.ymin(), 
-                                 parent.x(), rect.ymax());
+                                 this.getP().x(), rect.ymax());
         }
 
         public boolean isRightOrTop(Point2D q, Orientation or) {
@@ -172,7 +143,7 @@ public class KdTree {
 
     private static Point2D get(Node current, Point2D p, Orientation or) {
         while (current != null) {
-            changeOr(or);
+            or = changeOr(or);
             if      (current.isLeftOrBottom(p, or))   current = current.getLb();
             else if (current.isRightOrTop(p, or))     current = current.getRt();
             else                    return current.getP();
@@ -181,12 +152,17 @@ public class KdTree {
     }
 
     private void put(Point2D p) {
-        Object[] put = put(root, p, false, Orientation.VERTICAL);
+        Object[] put = put(root, p, root == null, Orientation.VERTICAL);
         root = (Node) put[0];
         if ((boolean) put[1]) ++size;
     }
 
-    private static Object[] put(Node current, Point2D p, boolean newPoint, Orientation orientation) {
+    private static Object[] put(
+        Node current, 
+        Point2D p, 
+        boolean newPoint, 
+        Orientation orientation
+    ) {
         if (current == null) {
             Object[] put = {
                 new Node(p),
@@ -216,67 +192,125 @@ public class KdTree {
 
     // draw all points to standard draw 
     public void draw() {
-        recursiveDraw(root, root, VERTICAL, new RectHV(0, 0, 1, 1));
+        if (root == null) return;
+
+        recursiveDraw(
+            root, 
+            Orientation.VERTICAL, 
+            new RectHV(0, 0, 1, 1)
+        );
     }
 
     private static void recursiveDraw(
-        Node parent, 
-        Node child, 
-        boolean or, 
+        Node current, 
+        Orientation orientation, 
         RectHV rect
     ) {
-        if (child == null) return;
+        if (current == null) return;
 
-        rect = child.getRect(parent, rect, or);
-
-        recursiveDraw(child, child.getRt(), !or, rect);
-        recursiveDraw(child, child.getLb(), !or, rect);
-        
-        Point2D p = child.getP();
+        // Draw this Node
+        Point2D p = current.getP();
         StdDraw.setPenRadius();
-        if (or) {
+        if (isVertical(orientation)) {
             StdDraw.setPenColor(StdDraw.RED);
             StdDraw.line(p.x(), rect.ymin(), p.x(), rect.ymax());
-        }
-        else {
+        } else {
             StdDraw.setPenColor(StdDraw.BLUE);
             StdDraw.line(rect.xmin(), p.y(), rect.xmax(), p.y());
         }
         StdDraw.setPenColor(StdDraw.BLACK);
         StdDraw.setPenRadius(0.01);
         p.draw();
+
+        // Draw children nodes
+        orientation = changeOr(orientation);
+        
+        // Right node
+        recursiveDraw(
+            current.getRt(), 
+            orientation, 
+            current.getRectRightOrTop(rect, orientation)
+        );
+
+        // Left Node
+        recursiveDraw(
+            current.getLb(), 
+            orientation, 
+            current.getRectLeftOrBottom(rect, orientation)
+        );
     }
 
     // all points that are inside the rectangle (or on the boundary) 
     public Iterable<Point2D> range(RectHV rect) {
         if (rect == null) throw new IllegalArgumentException();
 
-        Stack<Point2D> stack = new Stack<>();
-        
-        stack = recursiveRange(root, root, stack, VERTICAL, new RectHV(0, 0, 1, 1));
-        return stack;
+        return recursiveRange(
+            root, 
+            new Stack<Point2D>(), 
+            Orientation.VERTICAL, 
+            rect
+        );
     }
     
-    private Stack<Point2D> recursiveRange(Node prnt, Node chld, Stack<Point2D> stack, boolean or, RectHV r) {
-        if (chld == null) return stack;
+    private Stack<Point2D> recursiveRange(
+        Node current, 
+        Stack<Point2D> stack,
+        Orientation or,
+        RectHV rect
+    ) {
+        if (current == null) return stack;
 
-        r = chld.getRect(prnt, r, or);
-        Point2D p = chld.getP();
-        or = !or;
-        if (!or) {
-            if (r.xmin() < p.x()) 
-                stack = recursiveRange(chld, chld.getLb(), stack, or, r);
-            if (r.xmax() > p.x()) 
-                stack = recursiveRange(chld, chld.getRt(), stack, or, r);
-        }
-        else {
-            if (r.ymin() < p.y())
-                stack = recursiveRange(chld, chld.getLb(), stack, or, r);
-            if (r.ymax() > p.y()) 
-                stack = recursiveRange(chld, chld.getRt(), stack, or, r);
+        Point2D p = current.getP();
+        Stack<Point2D> child;
+
+        // Vertical Point
+        if (isVertical(or)) {
+            or = changeOr(or);
+
+            //  Left child
+            if (rect.xmin() < p.x()) {
+                child = recursiveRange(
+                    current.getLb(), 
+                    new Stack<>(), 
+                    or, rect
+                );
+                stack = putInStack(stack, child);
+            }
+            // Right child
+            if (rect.xmax() > p.x()) {
+                child = recursiveRange(
+                    current.getRt(), 
+                    new Stack<>(), 
+                    or, rect
+                );
+                stack = putInStack(stack, child);
+            }
+        // Horizontal Point
+        } else {
+            or = changeOr(or);
+
+            // Bottom child
+            if (rect.ymin() < p.y()) {
+                child = recursiveRange(
+                    current.getLb(), 
+                    new Stack<>(), 
+                    or, rect
+                );
+                stack = putInStack(stack, child);
+            }
+            // Top child
+            if (rect.ymax() > p.y()) {
+                child = recursiveRange(
+                    current.getRt(), 
+                    new Stack<>(), 
+                    or, rect
+                );
+                stack = putInStack(stack, child);
+            }
         }
 
-        if (r.contains(p)) stack.push(p);
+        // Put this point in the stack
+        if (rect.contains(p)) stack.push(p);
 
         return stack;
     }
@@ -284,9 +318,16 @@ public class KdTree {
     // a nearest neighbor in the set to point p; null if the set is empty 
     public Point2D nearest(Point2D p) {
         checkNull(p);
+
         return isEmpty() 
                 ? null 
-                : nearest(p, root.getP(), root, root, new RectHV(0, 0, 1, 1), VERTICAL);
+                : nearest(
+                    p, 
+                    root.getP(), 
+                    Orientation.VERTICAL,
+                    root,
+                    new RectHV(0, 0, 1, 1)
+                );
     }
 
     /**
@@ -295,74 +336,73 @@ public class KdTree {
      * 
      * Credits: Micong Huang
      * 
-     * @param trgt
-     * @param clst
+     * @param target
+     * @param closest
      * @param node
-     * @param prnt
+     * @param parent
      * @param rect
      * @param or
      * @return
      */
-    private Point2D nearest(Point2D trgt, Point2D clst, Node node, Node prnt, RectHV rect, boolean or) {
-        if (node == null) return clst;
+    private Point2D nearest(
+        Point2D target, 
+        Point2D closest, 
+        Orientation or,
+        Node current, 
+        RectHV rect
+    ) {
+        if (current == null) return closest;
 
-        double clstDist = clst.distanceSquaredTo(trgt);
-        rect = node.getRect(prnt, rect, or);
+        double closestDist = closest.distanceSquaredTo(target);
 
-        if (rect.distanceSquaredTo(trgt) < clstDist) {
-            double nodeDist = node.getP().distanceSquaredTo(trgt);
+        if (rect.distanceSquaredTo(target) < closestDist) {
+            double nodeDist = current.getP().distanceSquaredTo(target);
 
-            if (nodeDist < clstDist) clst = node.getP();
+            if (nodeDist < closestDist) closest = current.getP();
             
-            int cmp = compare(or, node.getP(), trgt);
-            or = !or;
+            if (current.isRightOrTop(target, or)) {
+                or = changeOr(or);
 
-            if (cmp > 0) {
-                clst = nearest(trgt, clst, node.getLb(), node, rect, or);
-                clst = nearest(trgt, clst, node.getRt(), node, rect, or);
+                // Left or Bottom child
+                closest = nearest(
+                    target, closest, or,
+                    current.getLb(), 
+                    current.getRectLeftOrBottom(rect, or)
+                );
+
+                // Right or Top child
+                closest = nearest(
+                    target, closest, or, 
+                    current.getRt(), 
+                    current.getRectRightOrTop(rect, or)
+                );
             } else {
-                clst = nearest(trgt, clst, node.getRt(), node, rect, or);
-                clst = nearest(trgt, clst, node.getLb(), node, rect, or);
+                or = changeOr(or);
+
+                // Right or Top child
+                closest = nearest(
+                    target, closest, or, 
+                    current.getRt(), 
+                    current.getRectRightOrTop(rect, or)
+                );
+
+                // Left or Bottom child
+                closest = nearest(
+                    target, closest, or,
+                    current.getLb(), 
+                    current.getRectLeftOrBottom(rect, or)
+                );
             }
         }
-        return clst;
+        return closest;
     }
 
+    private static Stack<Point2D> putInStack(Stack<Point2D> parent, Stack<Point2D> child) {
+        if (child.isEmpty()) return parent;
 
-    /**
-     * Compares two {@code Point2D} p and q. Unlike Point2D's {@code compareTo} method
-     * 'tis is compatible with the orientation.
-     * 
-     * @param or the orientation of the Node (expressed in a boolean)
-     * @param p  the point comparator
-     * @param q  the point comparable
-     * @return   {@code 0} if they're equals;
-     *           {@code 1} if their {@code x} are equals but comparator y is greater,
-     *                     if their {@code y} are equals but comparator x is greater,
-     *                     if comparator a coordinate are greater depending on orientation;
-     *           {@code -1} otherwise;
-     */
-    private static int compare(boolean or, Point2D p, Point2D q) {
-        if (p.equals(q)) return 0;
-
-        else if (p.x() == q.x()) {
-            if (p.y() > q.y()) return +1;
-            else return -1;
-        }
-        else if (p.y() == q.y()) {
-            if (p.x() > q.x()) return +1;
-            else return -1;
-        } 
-        else if (or) {
-            if         (p.x() < q.x())    return -1;
-            else /* if (p.x() > q.x()) */ return +1;
-            // else return 0;
-        } 
-        else {
-            if         (p.y() < q.y())    return -1;
-            else /* if (p.y() > q.y()) */ return +1;
-            // else return 0;
-        }
+        for (Point2D point2d : child)
+            parent.push(point2d);
+        return parent;
     }
 
     private static void checkNull(Object obj) {
@@ -370,14 +410,14 @@ public class KdTree {
             throw new NullPointerException();
     }
 
-    private static boolean isVertical(Orientation or) {
-        return or == Orientation.VERTICAL;
-    }
-
     private static Orientation changeOr(Orientation or) {
         Orientation[] values = Orientation.values();
         int newOrdinal = (or.ordinal() + 1) % values.length;
         return values[newOrdinal];
+    }
+
+    private static boolean isVertical(Orientation or) {
+        return or == Orientation.VERTICAL;
     }
 
     // unit testing of the methods (optional) 
