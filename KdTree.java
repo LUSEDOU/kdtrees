@@ -52,9 +52,6 @@ public class KdTree {
             checkNull(parent);
             checkNull(rect);
 
-
-            Point2D pParent = parent.getP();
-
             // Compares this point with a other node's point
             int cmp = compare(!or, this.getP(), parent.getP());
 
@@ -170,16 +167,15 @@ public class KdTree {
 
     private Point2D get(Point2D p) {
         checkNull(p);
-        return get(root, p, VERTICAL);
+        return get(root, p, Orientation.VERTICAL);
     }
 
-    private static Point2D get(Node prnt, Point2D p, boolean or) {
-        while (prnt != null) {
-            int cmp = compare(or, p, prnt.getP());
-            or = !or;
-            if          (cmp < 0)   prnt = prnt.getLb();
-            else if     (cmp > 0)   prnt = prnt.getRt();
-            else                    return prnt.getP();
+    private static Point2D get(Node current, Point2D p, Orientation or) {
+        while (current != null) {
+            changeOr(or);
+            if      (current.isLeftOrBottom(p, or))   current = current.getLb();
+            else if (current.isRightOrTop(p, or))     current = current.getRt();
+            else                    return current.getP();
         }
         return null;
     }
@@ -223,26 +219,20 @@ public class KdTree {
         recursiveDraw(root, root, VERTICAL, new RectHV(0, 0, 1, 1));
     }
 
-    private static void recursiveDraw(Node prnt, Node chld, boolean or, RectHV rect) {
-        if (chld == null) return;
+    private static void recursiveDraw(
+        Node parent, 
+        Node child, 
+        boolean or, 
+        RectHV rect
+    ) {
+        if (child == null) return;
 
-        rect = chld.getRect(prnt, rect, or);
+        rect = child.getRect(parent, rect, or);
 
-        double width = rect.xmax() - rect.xmin();
-        double height = rect.ymax() - rect.ymin();
-        if (or) 
-            StdDraw.setPenColor(StdDraw.CYAN);
-        else 
-            StdDraw.setPenColor(StdDraw.ORANGE);
-        StdDraw.filledRectangle(
-            rect.xmax() - (width / 2), rect.ymax() - (height / 2), 
-            width / 2, height / 2
-        );
-
-        recursiveDraw(chld, chld.getRt(), !or, rect);
-        recursiveDraw(chld, chld.getLb(), !or, rect);
+        recursiveDraw(child, child.getRt(), !or, rect);
+        recursiveDraw(child, child.getLb(), !or, rect);
         
-        Point2D p = chld.getP();
+        Point2D p = child.getP();
         StdDraw.setPenRadius();
         if (or) {
             StdDraw.setPenColor(StdDraw.RED);
