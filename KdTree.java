@@ -46,7 +46,7 @@ public class KdTree {
         public Node getLb()                 {   return lb;          }
         public void setLb(Node lb)          {   this.lb = lb;       }
         
-        private RectHV getRectRightOrTop(RectHV rect, Orientation or) {
+        public RectHV getRectRightOrTop(RectHV rect, Orientation or) {
             return isVertical(or)
                     ? new RectHV(rect.xmin(), this.getP().y(), 
                                  rect.xmax(), rect.ymax())
@@ -54,7 +54,7 @@ public class KdTree {
                                  rect.xmax(), rect.ymax());
         }
 
-        private RectHV getRectLeftOrBottom(RectHV rect, Orientation or) {
+        public RectHV getRectLeftOrBottom(RectHV rect, Orientation or) {
             return isVertical(or)
                     ? new RectHV(rect.xmin(), rect.ymin(), 
                                  rect.xmax(), this.getP().y())
@@ -64,39 +64,41 @@ public class KdTree {
 
         public boolean isRightOrTop(Point2D q, Orientation or) {
             return isVertical(or)
-                    ? isRight(q)
-                    : isTop(q);
+                ? isRight(q)
+                : isTop(q);
         }
 
         public boolean isLeftOrBottom(Point2D q, Orientation or) {            
             return isVertical(or)
-                    ? isLeft(q) 
-                    : isBottom(q);
+                ? isLeft(q)
+                : isBottom(q);
+    
         }
 
-        public boolean isLeft(Point2D q) {
+        private boolean isLeft(Point2D q) {
             return this.getP().x() == q.x()
                     ? this.getP().y() > q.y()
                     : this.getP().x() > q.x();
         }
 
-        public boolean isRight(Point2D q) {
+        private boolean isRight(Point2D q) {
             return this.getP().x() == q.x()
                     ? this.getP().y() < q.y()
                     : this.getP().x() < q.x();
         }
 
-        public boolean isTop(Point2D q) {
+        private boolean isTop(Point2D q) {
             return this.getP().y() == q.y()
                     ? this.getP().x() < q.x()
                     : this.getP().y() < q.y();
         }
         
-        public boolean isBottom(Point2D q) {
+        private boolean isBottom(Point2D q) {
             return this.getP().y() == q.y()
                     ? this.getP().x() > q.x()
                     : this.getP().y() > q.y();
         }
+
     }
     
     /**
@@ -128,39 +130,15 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         checkNull(p);
-        put(p);
-    }
 
-    // does the set contain point p? 
-    public boolean contains(Point2D p) {
-        return get(p) != null;
-    }
-
-    private Point2D get(Point2D p) {
-        checkNull(p);
-        return get(root, p, Orientation.VERTICAL);
-    }
-
-    private static Point2D get(Node current, Point2D p, Orientation or) {
-        while (current != null) {
-            or = changeOr(or);
-            if      (current.isLeftOrBottom(p, or))   current = current.getLb();
-            else if (current.isRightOrTop(p, or))     current = current.getRt();
-            else                    return current.getP();
-        }
-        return null;
-    }
-
-    private void put(Point2D p) {
-        Object[] put = put(root, p, root == null, Orientation.VERTICAL);
+        Object[] put = insert(root, p, Orientation.VERTICAL);
         root = (Node) put[0];
         if ((boolean) put[1]) ++size;
     }
 
-    private static Object[] put(
+    private static Object[] insert(
         Node current, 
         Point2D p, 
-        boolean newPoint, 
         Orientation orientation
     ) {
         if (current == null) {
@@ -171,23 +149,41 @@ public class KdTree {
             return put;
         }
 
+        boolean newPoint = false;
         if (current.isRightOrTop(p, orientation)) {
             orientation = changeOr(orientation);
-            Object[] response = put(current.getRt(), p, newPoint, orientation);
+            Object[] response = insert(current.getRt(), p, orientation);
 
-            current.setRt((Node)response[0]);
-            newPoint = (boolean)response[1];
+            current.setRt((Node) response[0]);
+            newPoint = (boolean) response[1];
         }
         else if (current.isLeftOrBottom(p, orientation)) {
             orientation = changeOr(orientation);
-            Object[] response = put(current.getLb(), p, newPoint, orientation);
+            Object[] response = insert(current.getLb(), p, orientation);
 
-            current.setLb((Node)response[0]);
-            newPoint = (boolean)response[1];
+            current.setLb((Node) response[0]);
+            newPoint = (boolean) response[1];
         }
 
         Object[] put = {current, newPoint};
         return put;
+    }
+
+    // does the set contain point p? 
+    public boolean contains(Point2D p) {
+        checkNull(p);
+        return contains(root, p, Orientation.HORIZONTAL);
+    }
+
+    private static boolean contains(Node current, Point2D p, Orientation or) {
+        while (current != null) {
+            or = changeOr(or);
+            
+            if      (current.isLeftOrBottom(p, or)) current = current.getLb();
+            else if (current.isRightOrTop(p, or))   current = current.getRt();
+            else                                    return true;
+        }
+        return false;
     }
 
     // draw all points to standard draw 
@@ -244,15 +240,18 @@ public class KdTree {
     public Iterable<Point2D> range(RectHV rect) {
         if (rect == null) throw new IllegalArgumentException();
 
-        return recursiveRange(
-            root, 
-            new Stack<Point2D>(), 
-            Orientation.VERTICAL, 
-            rect
+        return putInStack(
+            new Stack<>(), 
+            range(
+                root, 
+                new Stack<>(), 
+                Orientation.VERTICAL, 
+                rect
+            )
         );
     }
     
-    private Stack<Point2D> recursiveRange(
+    private Stack<Point2D> range(
         Node current, 
         Stack<Point2D> stack,
         Orientation or,
@@ -268,8 +267,8 @@ public class KdTree {
             or = changeOr(or);
 
             //  Left child
-            if (rect.xmin() < p.x()) {
-                child = recursiveRange(
+            if (rect.xmin() <= p.x()) {
+                child = range(
                     current.getLb(), 
                     new Stack<>(), 
                     or, rect
@@ -277,8 +276,8 @@ public class KdTree {
                 stack = putInStack(stack, child);
             }
             // Right child
-            if (rect.xmax() > p.x()) {
-                child = recursiveRange(
+            if (rect.xmax() >= p.x()) {
+                child = range(
                     current.getRt(), 
                     new Stack<>(), 
                     or, rect
@@ -290,8 +289,8 @@ public class KdTree {
             or = changeOr(or);
 
             // Bottom child
-            if (rect.ymin() < p.y()) {
-                child = recursiveRange(
+            if (rect.ymin() <= p.y()) {
+                child = range(
                     current.getLb(), 
                     new Stack<>(), 
                     or, rect
@@ -299,8 +298,8 @@ public class KdTree {
                 stack = putInStack(stack, child);
             }
             // Top child
-            if (rect.ymax() > p.y()) {
-                child = recursiveRange(
+            if (rect.ymax() >= p.y()) {
+                child = range(
                     current.getRt(), 
                     new Stack<>(), 
                     or, rect
@@ -431,6 +430,11 @@ public class KdTree {
             kdTree.insert(p);
         }
         StdOut.println(kdTree.size);
+
+        RectHV rect = new RectHV(0.25, 0.25, 1, 0.625);
+        for (Point2D p : kdTree.range(rect)) {
+            StdOut.print(p+" ");
+        }
         kdTree.draw();
     }
 }
